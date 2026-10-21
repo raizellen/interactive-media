@@ -3,8 +3,16 @@ var temperatureMode = true;
 
 var tempImg = [];
 var rainImg = [];
-var tempFiles = ["assets/hot.png", "assets/chill.png", "assets/cold.jpg"];
-var rainFiles = ["assets/sunny.jpg", "assets/cloudy.jpg", "assets/rain.jpg"];
+var tempFiles = [
+  "../../assets/images/weather-calendar-images/hot.png",
+  "../../assets/images/weather-calendar-images/chill.png",
+  "../../assets/images/weather-calendar-images/cold.jpg"
+];
+var rainFiles = [
+  "../../assets/images/weather-calendar-images/sunny.jpg",
+  "../../assets/images/weather-calendar-images/cloudy.jpg",
+  "../../assets/images/weather-calendar-images/rain.jpg"
+];
 
 var days = [];  // store day, min, max, rain data
 var tiles = [];
@@ -32,7 +40,7 @@ async function setup() {
     rainImg.push(makeCircle(await loadImage(f)));
   }
   // data taken from bom, can download csv and load file into here
-  var data = await loadStrings("data/january.csv");
+  var data = await loadStrings("../../assets/data/weather-calendar-data/january.csv");
   parseWeather(data);
 }
 

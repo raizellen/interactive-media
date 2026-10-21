@@ -20,7 +20,7 @@ async function setup() {
   noStroke();
   rectMode(CORNERS);
   colorMode(HSB);
-  thickFont = await loadFont("thickFont.ttf"); // own font :)
+  thickFont = await loadFont("../../assets/fonts/thickFont.ttf"); // own font :)
 
   // webcam
   cameraCapture = createCapture(VIDEO);
