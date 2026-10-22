@@ -1,7 +1,32 @@
 html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  background: #d2c6b3;
+  overflow: hidden;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: #2b2420;
 }
 canvas {
   display: block;
+  touch-action: none;
+  cursor: grab;
+}
+
+canvas:active {
+  cursor: grabbing;
+}
+
+#label { position: fixed; left: 50%; top: 22px; transform: translateX(-50%); width: min(520px, 88vw);
+  text-align: center; pointer-events: none; opacity: 0; transition: opacity .3s; text-shadow: 0 1px 12px rgba(255,255,255,.7); }
+#label.on { opacity: 1; }
+#label h2 { margin: 0 0 6px; font-weight: 600; font-size: 26px; letter-spacing: -0.01em; }
+#label p { margin: 0; font-size: 15px; line-height: 1.55; }
+#label small { display: block; margin-top: 8px; font-size: 13px; color: #a64a2f; }
+#hint { position: fixed; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 13px;
+  opacity: .75; pointer-events: none; padding: 0 12px; text-shadow: 0 1px 8px rgba(255,255,255,.6); }
+
+@media (hover: none) {
+  #btns { display: flex; }
+  #hint { display: none; }
 }
