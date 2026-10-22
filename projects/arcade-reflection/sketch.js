@@ -77,7 +77,7 @@ function draw() {
       textAlign(CENTER, CENTER);
       fill(colour,100,100);
       textStyle(BOLD);
-      textSize(8);
+      textSize(10);
       text(c, xPos, yPos);
     }
   }

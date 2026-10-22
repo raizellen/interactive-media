@@ -3,6 +3,9 @@ const W = 3.6, H = 3.2;                 // hall width and height
 const S = 1.8;                          // art size
 const N = PROJECTS.length, L = N * D;   // one full loop
 
+const THUMBS = 'assets/images/thumbnail/';   // relative to the html page, like BASE
+const TS = 1024;                             // texture size; raise it if the screenshots look soft up close
+
 // earthy palette: terracotta, ochre, olive, clay, sage, umber
 const EARTH = [0xb5573a, 0xcf9f4a, 0x7b7d47, 0xc58a72, 0x9ba58a, 0x6b4a38];
 const FRAME_FINISH = [0x2b2420, 0xb98f5d, 0x4a3426, 0x7b7d47];
@@ -27,7 +30,6 @@ scene.add(lamp);
 
 /* ---------- helpers ---------- */
 const std = (c, r = 0.9) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
-const basic = c => new THREE.MeshBasicMaterial({ color: c });
 function mesh(geo, mat, x, y, z) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); return m; }
 function tex(canvas, rx = 1, ry = 1) {
   const t = new THREE.CanvasTexture(canvas);
@@ -81,19 +83,24 @@ function rugTexture() {
   return tex(c);
 }
 
-// stand-in picture shown until a live sketch is running
+// the picture in each frame: the project's screenshot, with a gradient fallback if the png is missing
 function placeholderTexture(p, i) {
-  const c = canvas(800, 600), x = c.getContext('2d');
-  const g = x.createLinearGradient(0, 0, 800, 600);
+  const c = canvas(TS, TS), x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, TS, TS);
   g.addColorStop(0, css(EARTH[i % EARTH.length])); g.addColorStop(1, css(EARTH[(i + 2) % EARTH.length]));
-  x.fillStyle = g; x.fillRect(0, 0, 800, 600);
-  for (let k = 0; k < 14; k++) {
-    x.beginPath(); x.arc((k * 173 + i * 91) % 800, (k * 97 + i * 53) % 600, 30 + (k * 37) % 90, 0, 7);
-    x.fillStyle = 'rgba(255,248,230,.13)'; x.fill();
-  }
+  x.fillStyle = g; x.fillRect(0, 0, TS, TS);
   x.fillStyle = '#fbf6ea'; x.textAlign = 'center';
-  x.font = '600 50px Helvetica, Arial, sans-serif'; x.fillText(p.title, 400, 310);
-  return tex(c);
+  x.font = '600 70px Helvetica, Arial, sans-serif'; x.fillText(p.title, TS / 2, TS / 2);
+
+  const t = tex(c);
+  const img = new Image();
+  img.onload = () => {                       // crop the screenshot to fill the square
+    const s = Math.max(TS / img.width, TS / img.height), w = img.width * s, h = img.height * s;
+    x.drawImage(img, (TS - w) / 2, (TS - h) / 2, w, h);
+    t.needsUpdate = true;
+  };
+  img.src = THUMBS + p.folder + '.png';
+  return t;
 }
 
 // small wall label that sits beside each frame
@@ -185,49 +192,6 @@ for (let k = -K; k <= K; k++) {
 const arts = [];
 scene.traverse(o => { if (o.userData && o.userData.art) arts.push(o); });
 
-/* ---------- live p5 sketches: load the nearby ones in hidden iframes and use their canvas as the picture ---------- */
-const live = PROJECTS.map(() => ({ iframe: null, tex: null, canvas: null, cw: 0, ch: 0, failed: false }));
-
-function startLive(i) {
-  const f = document.createElement('iframe');
-  f.src = BASE + PROJECTS[i].folder + '/index.html';
-  f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
-  f.style.cssText = 'position:fixed;left:0;top:0;width:800px;height:600px;border:0;opacity:0;pointer-events:none;z-index:-1';
-  document.body.appendChild(f);
-  live[i].iframe = f;
-}
-function stopLive(i) {
-  const s = live[i];
-  if (s.iframe) s.iframe.remove();
-  if (s.tex) s.tex.dispose();
-  Object.assign(s, { iframe: null, tex: null, canvas: null, cw: 0, ch: 0 });
-  artMats[i].map = placeholders[i]; artMats[i].needsUpdate = true;
-}
-function tryBind(i) {
-  const s = live[i];
-  try {
-    const doc = s.iframe.contentDocument;
-    const c = doc && doc.querySelector('canvas');
-    if (!c || !c.width) return;
-    s.canvas = c;
-    s.tex = new THREE.CanvasTexture(c);
-    s.tex.encoding = THREE.sRGBEncoding; s.tex.minFilter = THREE.LinearFilter; s.tex.generateMipmaps = false;
-    try { s.iframe.contentWindow.outputVolume(0); } catch (e) { /* sketch has no p5.sound */ }
-    artMats[i].map = s.tex; artMats[i].needsUpdate = true;
-  } catch (e) {
-    console.warn('Could not read the sketch. Serve this page over http(s) instead of opening it as a file.', e);
-    s.failed = true; stopLive(i);
-  }
-}
-function fitLive(i) {            // crop the sketch to the frame's 4:3 shape
-  const s = live[i], c = s.canvas;
-  if (!c.width || !c.height || (s.cw === c.width && s.ch === c.height)) return;
-  s.cw = c.width; s.ch = c.height;
-  const a = c.width / c.height, f = S;
-  const rx = a > f ? f / a : 1, ry = a > f ? 1 : a / f;
-  s.tex.repeat.set(rx, ry); s.tex.offset.set((1 - rx) / 2, (1 - ry) / 2);
-}
-
 /* ---------- movement: forward only ---------- */
 let yaw = 0, pitch = 0, pz = -1, vz = 0, auto = false;
 const keys = {}, hold = { f: 0 };
@@ -287,15 +251,6 @@ function tick(now) {
   camera.position.set(0, 1.55, pz);
   camera.rotation.set(pitch, yaw, 0);
   lamp.position.set(0, 2.6, pz);
-
-  PROJECTS.forEach((p, i) => {
-    const s = live[i], d = slotDist(i);
-    const near = d > -D * 1.5 && d < D * 3.5, far = d < -D * 2.5 || d > D * 5;
-    if (!s.iframe && !s.failed && near) startLive(i);
-    else if (s.iframe && far) stopLive(i);
-    if (s.iframe && !s.tex && !s.failed) tryBind(i);
-    if (s.tex) { fitLive(i); s.tex.needsUpdate = true; }
-  });
 
   updateLabel();
   renderer.render(scene, camera);

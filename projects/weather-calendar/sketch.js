@@ -40,7 +40,7 @@ async function setup() {
     rainImg.push(makeCircle(await loadImage(f)));
   }
   // data taken from bom, can download csv and load file into here
-  var data = await loadStrings("../../assets/data/weather-calendar-data/january.csv");
+  var data = await loadStrings("../../assets/data/weather-calendar-data/september.csv");
   parseWeather(data);
 }
 
